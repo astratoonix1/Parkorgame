@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>RAJ ENGINE GAME</title>
+<style>
+:root{
+  --neon-cyan:#00f6ff;
+  --neon-magenta:#ff2fd0;
+  --neon-yellow:#ffe600;
+  --neon-green:#2bff88;
+  --neon-orange:#ff7a1a;
+  --panel-bg:rgba(10,14,24,0.55);
+  --panel-border:rgba(0,246,255,0.35);
+  --danger:#ff3b3b;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;
+  font-family:'Segoe UI',Arial,sans-serif; color:#eafcff;}
+#gameCanvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:50; background:radial-gradient(ellipse at 50% 20%, #0c1a2e 0%, #050810 70%, #020306 100%);}
+.hidden{display:none !important;}
+
+.glass{background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:14px;
+  backdrop-filter:blur(8px); box-shadow:0 0 22px rgba(0,246,255,0.15), inset 0 0 18px rgba(0,246,255,0.05);}
+
+.title-logo{font-size:clamp(28px,7vw,54px); font-weight:900; letter-spacing:3px;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta),var(--neon-yellow));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 30px rgba(0,246,255,0.35);
+  text-align:center; animation:hueShift 6s linear infinite; filter:drop-shadow(0 0 10px rgba(0,246,255,.4));}
+@keyframes hueShift{0%{filter:hue-rotate(0deg) drop-shadow(0 0 10px rgba(0,246,255,.4));}
+  100%{filter:hue-rotate(360deg) drop-shadow(0 0 10px rgba(0,246,255,.4));}}
+.subtitle{letter-spacing:6px; font-size:12px; color:var(--neon-cyan); opacity:.8; margin-top:6px;}
+.creator-tag{margin-top:10px; font-size:13px; color:#9be9ff; opacity:.85;}
+
+.loadbar-wrap{width:min(80vw,420px); height:14px; margin-top:34px; border-radius:8px;
+  border:1px solid var(--panel-border); overflow:hidden; background:rgba(255,255,255,0.05);}
+.loadbar-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta));
+  box-shadow:0 0 12px var(--neon-cyan); transition:width .15s linear;}
+.load-hint{margin-top:10px; font-size:12px; color:#7fd9ff; opacity:.8; letter-spacing:1px;}
+
+.neon-btn{cursor:pointer; padding:14px 30px; margin:8px; font-size:15px; font-weight:700; letter-spacing:2px;
+  color:#eafcff; background:linear-gradient(180deg, rgba(0,246,255,0.12), rgba(255,47,208,0.10));
+  border:1px solid var(--neon-cyan); border-radius:10px; text-transform:uppercase;
+  box-shadow:0 0 14px rgba(0,246,255,0.25); transition:all .15s ease; min-width:220px; text-align:center;}
+.neon-btn:active{transform:scale(0.96); box-shadow:0 0 26px rgba(0,246,255,0.55);}
+.neon-btn.magenta{border-color:var(--neon-magenta); box-shadow:0 0 14px rgba(255,47,208,0.25);}
+.neon-btn.small{min-width:auto; padding:9px 16px; font-size:12px; margin:4px;}
+.neon-btn.locked{opacity:.35; filter:grayscale(1); pointer-events:none;}
+
+.menu-btn-col{display:flex; flex-direction:column; align-items:stretch; margin-top:26px;}
+
+#loadingScreen .creator-tag{position:absolute; bottom:22px; left:0; right:0; text-align:center;}
+
+/* ===== HUD ===== */
+#hud{position:fixed; inset:0; z-index:20; pointer-events:none; font-family:'Segoe UI',Arial,sans-serif;}
+.hud-top{position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between;
+  padding:10px 14px; align-items:flex-start;}
+.hud-title{font-weight:900; font-size:14px; letter-spacing:1px; color:var(--neon-cyan);
+  text-shadow:0 0 8px rgba(0,246,255,.6); padding:6px 12px;}
+.hud-round{font-weight:800; font-size:13px; letter-spacing:2px; color:var(--neon-yellow); padding:6px 12px;
+  text-shadow:0 0 8px rgba(255,230,0,.6); text-align:center;}
+.hud-height-box{padding:6px 12px; text-align:right;}
+.hud-height{font-weight:900; font-size:16px; color:#fff; text-shadow:0 0 10px var(--neon-cyan);}
+.hud-best{font-size:10px; color:#8fd6ff; opacity:.8; margin-top:2px;}
+
+.hud-bars{position:absolute; top:56px; left:14px; right:14px; display:flex; flex-direction:column; gap:6px; max-width:260px;}
+.bar-row{display:flex; align-items:center; gap:6px;}
+.bar-label{font-size:10px; width:52px; letter-spacing:1px; color:#cdefff; text-shadow:0 0 4px #000;}
+.bar-outer{flex:1; height:10px; border-radius:6px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); overflow:hidden;}
+.bar-inner{height:100%; width:100%; background:linear-gradient(90deg,var(--neon-green),var(--neon-cyan)); box-shadow:0 0 8px var(--neon-green);}
+.bar-inner.power{background:linear-gradient(90deg,#00f6ff,#7a5cff); box-shadow:0 0 8px #00f6ff;}
+
+.diff-tag{position:absolute; top:56px; right:14px; font-size:10px; padding:4px 10px; border-radius:20px;
+  letter-spacing:1px; border:1px solid var(--neon-orange); color:var(--neon-orange); background:rgba(255,122,26,0.08);}
+
+#toastStack{position:absolute; top:120px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column;
+  align-items:center; gap:6px; width:min(90vw,340px);}
+.toast{padding:8px 18px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:1px; text-align:center;
+  opacity:0; animation:toastIn 2.6s ease forwards;}
+.toast.power{color:#7dffb0; border:1px solid #7dffb0; background:rgba(0,255,120,.08);}
+.toast.checkpoint{color:var(--neon-yellow); border:1px solid var(--neon-yellow); background:rgba(255,230,0,.08); font-size:14px;}
+.toast.ability{color:var(--neon-magenta); border:1px solid var(--neon-magenta); background:rgba(255,47,208,.08);}
+.toast.warn{color:var(--danger); border:1px solid var(--danger); background:rgba(255,59,59,.08);}
+@keyframes toastIn{0%{opacity:0; transform:translateY(-8px);}10%{opacity:1; transform:translateY(0);}80%{opacity:1;}100%{opacity:0; transform:translateY(-6px);}}
+
+#roundBanner{position:absolute; top:38%; left:0; right:0; text-align:center; opacity:0; pointer-events:none;}
+#roundBanner.show{animation:bannerPop 2.6s ease forwards;}
+@keyframes bannerPop{0%{opacity:0; transform:scale(.7);}15%{opacity:1; transform:scale(1.05);}25%{transform:scale(1);}85%{opacity:1;}100%{opacity:0;}}
+.round-banner-text{font-size:clamp(24px,6vw,44px); font-weight:900; letter-spacing:3px;
+  background:linear-gradient(90deg,var(--neon-yellow),var(--neon-orange));
+  -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 0 22px rgba(255,180,0,.5);}
+
+/* ability bar */
+#abilityBar{position:absolute; bottom:150px; left:0; right:0; display:flex; justify-content:center; gap:8px;
+  pointer-events:auto; flex-wrap:wrap; padding:0 8px;}
+.ability-slot{width:52px; height:52px; border-radius:12px; border:1px solid var(--panel-border);
+  background:var(--panel-bg); display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative; cursor:pointer;}
+.ability-slot .icon{font-size:18px;}
+.ability-slot .key{position:absolute; top:2px; left:4px; font-size:8px; color:#8fd6ff;}
+.ability-slot .cd{position:absolute; inset:0; border-radius:12px; background:rgba(0,0,0,0.55);
+  display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;}
+.ability-slot.locked{opacity:.3; filter:grayscale(1);}
+.ability-slot.active{box-shadow:0 0 14px var(--neon-cyan); border-color:var(--neon-cyan);}
+
+/* mobile controls */
+#mobileControls{position:absolute; inset:0; pointer-events:none; display:none;}
+#mobileControls.on{display:block;}
+#joystickZone{position:absolute; left:18px; bottom:20px; width:130px; height:130px; border-radius:50%;
+  border:2px solid rgba(0,246,255,0.35); background:rgba(0,246,255,0.05); pointer-events:auto;}
+#joystickKnob{position:absolute; left:35px; top:35px; width:60px; height:60px; border-radius:50%;
+  background:rgba(0,246,255,0.35); border:1px solid var(--neon-cyan); box-shadow:0 0 12px var(--neon-cyan);}
+.mbtn{position:absolute; pointer-events:auto; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-weight:800; color:#eafcff; background:var(--panel-bg); border:1px solid var(--panel-border); font-size:11px; letter-spacing:1px;}
+#btnJump{right:22px; bottom:96px; width:78px; height:78px; border-color:var(--neon-green); box-shadow:0 0 14px rgba(43,255,136,.3);}
+#btnSprint{right:112px; bottom:36px; width:60px; height:60px; border-color:var(--neon-yellow);}
+#btnGrab{right:26px; bottom:26px; width:60px; height:60px; border-color:var(--neon-magenta);}
+#btnDash{right:170px; bottom:96px; width:56px; height:56px; border-color:var(--neon-orange);}
+
+#pauseBtn{position:absolute; top:8px; right:8px; pointer-events:auto; width:36px; height:36px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:16px; z-index:30;}
+
+/* overlays */
+.overlay-panel{width:min(92vw,420px); padding:26px 22px; text-align:center;}
+.overlay-panel h2{margin:0 0 14px; font-size:22px; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan);}
+.settings-row{display:flex; justify-content:space-between; align-items:center; margin:10px 0; font-size:13px;}
+.seg{display:flex; gap:6px;}
+.seg button{padding:6px 12px; border-radius:8px; border:1px solid var(--panel-border); background:rgba(255,255,255,0.04); color:#cdefff; font-size:11px; cursor:pointer;}
+.seg button.active{background:var(--neon-cyan); color:#001018; font-weight:800;}
+.ach-item{display:flex; align-items:center; gap:10px; text-align:left; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;}
+.ach-item.locked{opacity:.35;}
+.ach-icon{font-size:20px;}
+#fpsCounter{position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:11px; color:#7dffb0; z-index:30;}
+
+/* victory */
+#victoryScreen{z-index:60; background:radial-gradient(ellipse at 50% 30%, #0f1a3a 0%, #030308 75%);}
+.victory-title{font-size:clamp(30px,9vw,64px); font-weight:900; letter-spacing:3px; text-align:center;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta),var(--neon-yellow),var(--neon-green));
+  -webkit-background-clip:text; background-clip:text; color:transparent; animation:hueShift 3s linear infinite;
+  text-shadow:0 0 40px rgba(255,255,255,0.3);}
+.victory-sub{font-size:clamp(16px,4vw,26px); letter-spacing:4px; color:#fff; margin-top:10px; text-shadow:0 0 20px var(--neon-cyan);}
+#confettiCanvas{position:fixed; inset:0; z-index:61; pointer-events:none;}
+
+/* respawn / death overlay */
+#respawnOverlay{z-index:40;}
+
+/* achievements toast bottom-left small unlock badge */
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:rgba(0,246,255,.3); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- ============ LOADING SCREEN ============ -->
+<div id="loadingScreen" class="screen">
+  <div class="title-logo">RAJ ENGINE GAME</div>
+  <div class="subtitle">VERTICAL PARKOUR PROTOCOL</div>
+  <div class="loadbar-wrap"><div class="loadbar-fill" id="loadFill"></div></div>
+  <div class="load-hint" id="loadHint">INITIALIZING ENGINE...</div>
+  <div class="menu-btn-col" id="loadingActions" style="display:none;">
+    <button class="neon-btn" id="startGameBtn">▶ START GAME</button>
+    <button class="neon-btn magenta small" id="soundToggleBtnLoad">🔊 SOUND: ON</button>
+  </div>
+  <div class="creator-tag">Created by @raj_dev_01</div>
+</div>
+
+<!-- ============ MAIN MENU ============ -->
+<div id="mainMenu" class="screen hidden">
+  <div class="title-logo" style="font-size:clamp(22px,6vw,40px);">RAJ ENGINE GAME</div>
+  <div class="menu-btn-col">
+    <button class="neon-btn" id="menuStartBtn">▶ START GAME</button>
+    <button class="neon-btn magenta" id="menuAchBtn">🏆 ACHIEVEMENTS</button>
+    <button class="neon-btn" id="menuAbilBtn">⚡ ABILITIES</button>
+    <button class="neon-btn magenta" id="menuSettingsBtn">⚙ SETTINGS</button>
+    <button class="neon-btn" id="menuAboutBtn">ℹ ABOUT</button>
+  </div>
+  <div class="creator-tag">Created by @raj_dev_01</div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div id="settingsScreen" class="screen hidden">
+  <div class="glass overlay-panel">
+    <h2>⚙ SETTINGS</h2>
+    <div class="settings-row"><span>Graphics</span>
+      <div class="seg" id="gfxSeg">
+        <button data-v="low">LOW</button><button data-v="medium">MED</button><button data-v="high">HIGH</button>
+      </div>
+    </div>
+    <div class="settings-row"><span>Sound</span>
+      <div class="seg" id="soundSeg"><button data-v="on">ON</button><button data-v="off">OFF</button></div>
+    </div>
+    <div class="settings-row"><span>Vibration</span>
+      <div class="seg" id="vibSeg"><button data-v="on">ON</button><button data-v="off">OFF</button></div>
+    </div>
+    <div class="settings-row"><span>Debug FPS</span>
+      <div class="seg" id="fpsSeg"><button data-v="on">ON</button><button data-v="off">OFF</button></div>
+    </div>
+    <button class="neon-btn small" style="border-color:var(--danger); color:var(--danger); margin-top:14px;" id="resetProgressBtn">RESET PROGRESS</button>
+    <button class="neon-btn small" id="settingsBackBtn">← BACK</button>
+  </div>
+</div>
+
+<!-- ============ ACHIEVEMENTS ============ -->
+<div id="achScreen" class="screen hidden">
+  <div class="glass overlay-panel" style="max-height:80vh; overflow-y:auto;">
+    <h2>🏆 ACHIEVEMENTS</h2>
+    <div id="achList"></div>
+    <button class="neon-btn small" id="achBackBtn">← BACK</button>
+  </div>
+</div>
+
+<!-- ============ ABILITIES INFO ============ -->
+<div id="abilScreen" class="screen hidden">
+  <div class="glass overlay-panel" style="max-height:80vh; overflow-y:auto;">
+    <h2>⚡ ABILITIES</h2>
+    <div id="abilList"></div>
+    <button class="neon-btn small" id="abilBackBtn">← BACK</button>
+  </div>
+</div>
+
+<!-- ============ ABOUT ============ -->
+<div id="aboutScreen" class="screen hidden">
+  <div class="glass overlay-panel">
+    <h2>ℹ ABOUT</h2>
+    <p style="font-size:13px; line-height:1.6; color:#cdefff;">RAJ ENGINE GAME is a vertical climbing &amp; parkour
+      survival experience. Climb from 0m to 1000m across 3 rounds, dodge obstacles, collect power, and unlock
+      abilities to reach the summit.</p>
+    <p style="font-size:12px; color:#8fd6ff;">Created by @raj_dev_01</p>
+    <button class="neon-btn small" id="aboutBackBtn">← BACK</button>
+  </div>
+</div>
+
+<!-- ============ PAUSE ============ -->
+<div id="pauseScreen" class="screen hidden">
+  <div class="glass overlay-panel">
+    <h2>⏸ PAUSED</h2>
+    <div class="menu-btn-col">
+      <button class="neon-btn" id="resumeBtn">▶ RESUME</button>
+      <button class="neon-btn magenta" id="pauseSettingsBtn">⚙ SETTINGS</button>
+      <button class="neon-btn" id="pauseMenuBtn">🏠 MAIN MENU</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESPAWN OVERLAY ============ -->
+<div id="respawnOverlay" class="screen hidden">
+  <div class="glass overlay-panel">
+    <h2 style="color:var(--danger); text-shadow:0 0 10px var(--danger);">YOU FELL!</h2>
+    <p style="font-size:12px; color:#cdefff;">Respawning at last checkpoint...</p>
+    <button class="neon-btn" id="respawnBtn">RESPAWN AT CHECKPOINT</button>
+  </div>
+</div>
+
+<!-- ============ VICTORY ============ -->
+<canvas id="confettiCanvas" class="hidden"></canvas>
+<div id="victoryScreen" class="screen hidden">
+  <div class="victory-title">CONGRATULATIONS!</div>
+  <div class="victory-sub">YOU ARE NOW WIN</div>
+  <div class="victory-sub" style="font-size:clamp(12px,3vw,18px); letter-spacing:6px; opacity:.85; margin-top:4px;">RAJ ENGINE GAME</div>
+  <div style="margin-top:22px; font-size:14px; color:var(--neon-yellow); letter-spacing:2px;">FINAL HEIGHT: 1000m</div>
+  <div style="font-size:12px; color:#8fd6ff; letter-spacing:2px; margin-top:2px;">GAME COMPLETED</div>
+  <div class="menu-btn-col">
+    <button class="neon-btn" id="playAgainBtn">PLAY AGAIN</button>
+    <button class="neon-btn magenta" id="victoryMenuBtn">MAIN MENU</button>
+    <button class="neon-btn" style="border-color:var(--danger); color:var(--danger);" id="victoryResetBtn">RESET GAME</button>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="fpsCounter" class="hidden">FPS: 60</div>
+  <div class="hud-top">
+    <div class="hud-title glass">RAJ ENGINE GAME</div>
+    <div class="hud-round glass" id="hudRound">ROUND 1</div>
+    <div class="hud-height-box glass">
+      <div class="hud-height" id="hudHeight">HEIGHT: 0m</div>
+      <div class="hud-best" id="hudBest">BEST: 0m</div>
+    </div>
+  </div>
+  <div class="diff-tag" id="diffTag">EASY</div>
+  <div class="hud-bars">
+    <div class="bar-row"><span class="bar-label">POWER</span><div class="bar-outer"><div class="bar-inner power" id="powerBar"></div></div></div>
+  </div>
+  <div id="toastStack"></div>
+  <div id="roundBanner"><div class="round-banner-text" id="roundBannerText"></div></div>
+  <div id="abilityBar"></div>
+  <button id="pauseBtn" class="glass">⏸</button>
+  <div id="mobileControls">
+    <div id="joystickZone"><div id="joystickKnob"></div></div>
+    <div id="btnDash" class="mbtn">DASH</div>
+    <div id="btnJump" class="mbtn">JUMP</div>
+    <div id="btnSprint" class="mbtn">SPRINT</div>
+    <div id="btnGrab" class="mbtn">GRAB</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =======================================================================
+   RAJ ENGINE GAME
+   Single-file vertical climbing / parkour game built on three.js
+   Sections: CONFIG, SAVE, AUDIO, ABILITIES/ACHIEVEMENTS DATA, UI HELPERS,
+   THREE SETUP, CHARACTER, WORLD GEN, INPUT, PHYSICS, GAME LOOP, SCREENS
+   ======================================================================= */
+
+/* ---------------------------------------------------------------------
+   1. CONFIG
+   --------------------------------------------------------------------- */
+const CFG = {
+  gravity: -22,
+  jumpForce: 13,
+  superJumpForce: 18.5,
+  moveSpeed: 5.2,
+  sprintMult: 1.7,
+  climbSpeed: 3.4,
+  airControl: 0.65,
+  friction: 10,
+  accel: 26,
+  tierStep: 3.2,          // vertical meters between generated tiers
+  heightScale: 1.0,       // 1 world unit = 1 meter
+  respawnFallMargin: 14,  // meters below last checkpoint that triggers death
+  powerRegen: 4,          // per second
+  powerMax: 100,
+};
+
+const ROUNDS = [
+  { name: "ROUND 1", end: 100, checkpoints: [50, 100] },
+  { name: "ROUND 2", end: 200, checkpoints: [150, 200] },
+  { name: "ROUND 3", end: 1000, checkpoints: [300,400,500,600,700,800,900,1000] },
+];
+const ALL_CHECKPOINTS = [...new Set(ROUNDS.flatMap(r=>r.checkpoints))].sort((a,b)=>a-b);
+
+const DIFF_BANDS = [
+  {max:100, name:"EASY", color:"#2bff88"},
+  {max:300, name:"MEDIUM", color:"#ffe600"},
+  {max:600, name:"HARD", color:"#ff7a1a"},
+  {max:900, name:"VERY HARD", color:"#ff3b3b"},
+  {max:1000, name:"EXTREME", color:"#ff2fd0"},
+];
+function difficultyFor(h){ for(const b of DIFF_BANDS){ if(h<=b.max) return b; } return DIFF_BANDS[DIFF_BANDS.length-1]; }
+
+const ABILITIES = [
+  {id:"superjump", name:"SUPER JUMP", icon:"⬆", key:"1", cost:20, cooldown:6, unlockAt:0},
+  {id:"doublejump", name:"DOUBLE JUMP", icon:"✌", key:"SPACE", cost:15, cooldown:0, unlockAt:50, passive:true},
+  {id:"wallrun", name:"WALL RUN", icon:"🏃", key:"2", cost:25, cooldown:8, unlockAt:150, duration:2.2},
+  {id:"wallclimb", name:"WALL CLIMB", icon:"🧗", key:"E", cost:0, cooldown:0, unlockAt:0, passive:true},
+  {id:"airdash", name:"AIR DASH", icon:"💨", key:"Q", cost:18, cooldown:3.5, unlockAt:250},
+  {id:"supersprint", name:"SUPER SPRINT", icon:"🚀", key:"4", cost:22, cooldown:9, unlockAt:350, duration:4},
+  {id:"gravityboost", name:"GRAVITY BOOST", icon:"🌙", key:"5", cost:24, cooldown:10, unlockAt:500, duration:3.5},
+  {id:"shield", name:"SHIELD", icon:"🛡", key:"3", cost:30, cooldown:14, unlockAt:650},
+  {id:"magnetgrab", name:"MAGNET GRAB", icon:"🧲", key:"AUTO", cost:0, cooldown:0, unlockAt:800, passive:true},
+];
+
+const ACHIEVEMENTS = [
+  {id:"first50", name:"First Climb", desc:"Reach 50m", icon:"🏆", height:50},
+  {id:"sky100", name:"Sky Runner", desc:"Reach 100m", icon:"🏆", height:100},
+  {id:"high500", name:"High Climber", desc:"Reach 500m", icon:"🏆", height:500},
+  {id:"almost900", name:"Almost There", desc:"Reach 900m", icon:"🏆", height:900},
+  {id:"master1000", name:"RAJ ENGINE MASTER", desc:"Reach 1000m", icon:"🏆", height:1000},
+];
+
+const HEAD_TEXTURE_URL = "https://i.ibb.co/sdkz46tk/1782055936163-2.jpg";
+
+/* ---------------------------------------------------------------------
+   2. SAVE SYSTEM
+   --------------------------------------------------------------------- */
+const SAVE_KEY = "rajEngineGameSave_v1";
+function defaultSave(){
+  return {
+    highestHeight: 0,
+    highestCheckpoint: 0,
+    unlockedAbilities: ["superjump","wallclimb"],
+    achievements: [],
+    settings: { graphics:"medium", sound:"on", vibration:"on", fps:"off" },
+  };
+}
+let SAVE = loadSave();
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return defaultSave();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultSave(), parsed);
+  }catch(e){ return defaultSave(); }
+}
+function persistSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); }catch(e){ /* storage unavailable - ignore */ }
+}
+function resetSave(){ SAVE = defaultSave(); persistSave(); }
+
+/* ---------------------------------------------------------------------
+   3. AUDIO (Web Audio API synthesized SFX, no external files)
+   --------------------------------------------------------------------- */
+const Audio_ = (function(){
+  let ctx = null;
+  function ensure(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ctx; }
+  function isOn(){ return SAVE.settings.sound === "on"; }
+  function tone(freq, dur, type, gainVal, glideTo){
+    if(!isOn()) return;
+    const c = ensure(); if(!c) return;
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(freq, c.currentTime);
+    if(glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, c.currentTime+dur);
+    g.gain.setValueAtTime(gainVal||0.15, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime+dur);
+  }
+  return {
+    jump:()=>tone(420,0.18,"square",0.12,700),
+    land:()=>tone(160,0.12,"sine",0.14,90),
+    climb:()=>tone(300,0.08,"triangle",0.08,340),
+    checkpoint:()=>{ tone(523,0.15,"sine",0.16,784); setTimeout(()=>tone(784,0.2,"sine",0.14,1046),120); },
+    power:()=>tone(660,0.12,"triangle",0.1,880),
+    ability:()=>tone(220,0.22,"sawtooth",0.12,660),
+    round:()=>{ tone(392,0.2,"sine",0.16); setTimeout(()=>tone(523,0.2,"sine",0.16),150); setTimeout(()=>tone(659,0.3,"sine",0.18),300); },
+    victory:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.35,"sine",0.16),i*180)); },
+    fall:()=>tone(180,0.4,"sawtooth",0.12,60),
+    click:()=>tone(500,0.06,"square",0.08),
+  };
+})();
+
+/* ---------------------------------------------------------------------
+   4. UI HELPERS
+   --------------------------------------------------------------------- */
+const $ = (id)=>document.getElementById(id);
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));
+  if(id) $(id).classList.remove("hidden");
+}
+function toast(msg, cls){
+  const el = document.createElement("div");
+  el.className = "toast " + (cls||"power");
+  el.textContent = msg;
+  $("toastStack").appendChild(el);
+  setTimeout(()=>el.remove(), 2700);
+}
+function vibrate(ms){
+  if(SAVE.settings.vibration==="on" && navigator.vibrate){ try{ navigator.vibrate(ms); }catch(e){} }
+}
+
+/* ---------------------------------------------------------------------
+   5. THREE.JS SETUP
+   --------------------------------------------------------------------- */
+let renderer, scene, camera;
+let clock = new THREE.Clock();
+const canvas = $("gameCanvas");
+
+function initThree(){
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:"high-performance" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a1220);
+  scene.fog = new THREE.FogExp2(0x0a1220, 0.012);
+
+  camera = new THREE.PerspectiveCamera(62, window.innerWidth/window.innerHeight, 0.1, 900);
+  camera.position.set(0,6,10);
+
+  const hemi = new THREE.HemisphereLight(0x8fd6ff, 0x0a0a14, 0.65);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xfff2d0, 1.0);
+  sun.position.set(20,40,10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024,1024);
+  sun.shadow.camera.left=-40; sun.shadow.camera.right=40; sun.shadow.camera.top=40; sun.shadow.camera.bottom=-40;
+  sun.shadow.camera.far = 120;
+  scene.add(sun);
+  scene.userData.sun = sun;
+
+  const fillLight = new THREE.PointLight(0x00f6ff, 0.6, 40);
+  fillLight.position.set(-6,4,-4);
+  scene.add(fillLight);
+  scene.userData.fillLight = fillLight;
+
+  window.addEventListener("resize", onResize);
+  applyGraphicsQuality();
+}
+function onResize(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+function applyGraphicsQuality(){
+  const q = SAVE.settings.graphics;
+  if(q==="low"){ renderer.setPixelRatio(1); renderer.shadowMap.enabled=false; scene.fog.density=0.02; }
+  else if(q==="medium"){ renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5)); renderer.shadowMap.enabled=true; scene.fog.density=0.013; }
+  else { renderer.setPixelRatio(Math.min(window.devicePixelRatio,2)); renderer.shadowMap.enabled=true; scene.fog.density=0.009; }
+}
+
+/* ---------------------------------------------------------------------
+   6. CHARACTER
+   --------------------------------------------------------------------- */
+let player = {
+  group:null, torso:null, head:null,
+  armL:null, armR:null, legL:null, legR:null,
+  handL:null, handR:null,
+  position:new THREE.Vector3(0,2,0),
+  velocity:new THREE.Vector3(0,0,0),
+  onGround:false, grounded:false,
+  currentPlatform:null,
+  climbing:false, wallTouch:null,
+  jumpsUsed:0, maxJumps:1,
+  animT:0, state:"idle", // idle, run, jump, fall, land, climb
+  landTimer:0, facingYaw:0,
+  shielded:false, wallrunActive:false, wallrunTimer:0,
+  gravityBoostTimer:0, superSprintTimer:0, dashCooldownVisual:0,
+  dashInvuln:0,
+};
+
+function buildCharacter(){
+  const g = new THREE.Group();
+
+  const skinMat = new THREE.MeshStandardMaterial({ color:0xf1c39a, roughness:0.6 });
+  const suitMat = new THREE.MeshStandardMaterial({ color:0x142033, roughness:0.5, metalness:0.3, emissive:0x00232e, emissiveIntensity:0.4 });
+  const accentMat = new THREE.MeshStandardMaterial({ color:0x00f6ff, emissive:0x00f6ff, emissiveIntensity:0.9 });
+  const hairMat = new THREE.MeshStandardMaterial({ color:0x1a1108, roughness:0.8 });
+
+  // torso
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.75,0.36), suitMat);
+  torso.position.y = 1.05; torso.castShadow = true;
+  g.add(torso);
+  // chest accent stripe
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.64,0.08,0.38), accentMat);
+  stripe.position.set(0,1.15,0); g.add(stripe);
+
+  // head group (neck pivot)
+  const headPivot = new THREE.Group();
+  headPivot.position.set(0,1.5,0);
+  g.add(headPivot);
+  const headGeo = new THREE.BoxGeometry(0.42,0.42,0.4);
+  let headMat = new THREE.MeshStandardMaterial({ color:0xf1c39a, roughness:0.55 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 0.22; head.castShadow = true;
+  headPivot.add(head);
+  // try to texture the face with the reference image
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin("anonymous");
+  loader.load(HEAD_TEXTURE_URL,
+    function(tex){
+      tex.wrapS = THREE.ClampToEdgeWrapping; tex.wrapT = THREE.ClampToEdgeWrapping;
+      const faceMat = new THREE.MeshStandardMaterial({ map: tex, roughness:0.55 });
+      // apply to front face only (index 4 = +z? materials array order: px,nx,py,ny,pz,nz)
+      head.material = [headMat, headMat, headMat, headMat, faceMat, headMat];
+    },
+    undefined,
+    function(){ /* texture failed to load - keep flat skin-color fallback, no console error thrown to user */ }
+  );
+  // hair cap
+  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.44,0.18,0.42), hairMat);
+  hair.position.set(0,0.42,-0.02); headPivot.add(hair);
+
+  // arms (shoulder pivots)
+  function makeArm(sign){
+    const shoulder = new THREE.Group();
+    shoulder.position.set(sign*0.42,1.38,0);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.08,0.42,8), suitMat);
+    upper.position.y = -0.21; upper.castShadow = true;
+    shoulder.add(upper);
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.42;
+    shoulder.add(elbow);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.065,0.4,8), skinMat);
+    lower.position.y = -0.2; lower.castShadow = true;
+    elbow.add(lower);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8), skinMat);
+    hand.position.y = -0.42; hand.castShadow = true;
+    elbow.add(hand);
+    g.add(shoulder);
+    return { shoulder, elbow, hand };
+  }
+  const armL = makeArm(1); // screen-left visually mirrored, doesn't matter functionally
+  const armR = makeArm(-1);
+
+  // legs (hip pivots)
+  function makeLeg(sign){
+    const hip = new THREE.Group();
+    hip.position.set(sign*0.17,0.68,0);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.09,0.46,8), new THREE.MeshStandardMaterial({color:0x1c2740,roughness:0.6}));
+    upper.position.y = -0.23; upper.castShadow = true;
+    hip.add(upper);
+    const knee = new THREE.Group();
+    knee.position.y = -0.46;
+    hip.add(knee);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.07,0.44,8), new THREE.MeshStandardMaterial({color:0x101828,roughness:0.6}));
+    lower.position.y = -0.22; lower.castShadow = true;
+    knee.add(lower);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.1,0.26), new THREE.MeshStandardMaterial({color:0x05070c,roughness:0.5}));
+    foot.position.set(0,-0.46,0.05); foot.castShadow = true;
+    knee.add(foot);
+    g.add(hip);
+    return { hip, knee, foot };
+  }
+  const legL = makeLeg(1);
+  const legR = makeLeg(-1);
+
+  // shield ring (hidden by default)
+  const shieldRing = new THREE.Mesh(new THREE.TorusGeometry(0.7,0.04,8,24), new THREE.MeshStandardMaterial({color:0x00f6ff, emissive:0x00f6ff, emissiveIntensity:1.2, transparent:true, opacity:0.7}));
+  shieldRing.rotation.x = Math.PI/2; shieldRing.position.y = 1.1; shieldRing.visible = false;
+  g.add(shieldRing);
+
+  g.position.copy(player.position);
+  scene.add(g);
+
+  player.group = g; player.torso = torso; player.headPivot = headPivot;
+  player.armL = armL; player.armR = armR; player.legL = legL; player.legR = legR;
+  player.shieldRing = shieldRing;
+}
+
+function animateCharacter(dt){
+  const p = player;
+  p.animT += dt;
+  const speed = Math.hypot(p.velocity.x, p.velocity.z);
+  const moving = speed > 0.4 && p.onGround;
+
+  let state = "idle";
+  if(p.climbing) state = "climb";
+  else if(!p.onGround && p.velocity.y > 1) state = "jump";
+  else if(!p.onGround && p.velocity.y <= 1) state = "fall";
+  else if(moving) state = "run";
+  if(p.landTimer > 0){ state = "land"; p.landTimer -= dt; }
+  p.state = state;
+
+  const swing = Math.min(speed/CFG.moveSpeed, 1.6);
+  const t = p.animT * (6 + swing*4);
+
+  if(state === "run"){
+    p.armL.shoulder.rotation.x = Math.sin(t)*0.9*swing;
+    p.armR.shoulder.rotation.x = -Math.sin(t)*0.9*swing;
+    p.legL.hip.rotation.x = -Math.sin(t)*0.9*swing;
+    p.legR.hip.rotation.x = Math.sin(t)*0.9*swing;
+    p.legL.knee.rotation.x = Math.max(0, Math.sin(t+1)*0.7*swing);
+    p.legR.knee.rotation.x = Math.max(0, Math.sin(t-1)*0.7*swing);
+    p.torso.rotation.z = Math.sin(t)*0.04;
+  } else if(state === "jump"){
+    p.armL.shoulder.rotation.x = -1.6; p.armR.shoulder.rotation.x = -1.6;
+    p.legL.hip.rotation.x = 0.5; p.legR.hip.rotation.x = -0.3;
+    p.legL.knee.rotation.x = 0.9; p.legR.knee.rotation.x = 0.4;
+  } else if(state === "fall"){
+    p.armL.shoulder.rotation.x = THREE.MathUtils.lerp(p.armL.shoulder.rotation.x,-0.9,0.15);
+    p.armR.shoulder.rotation.x = THREE.MathUtils.lerp(p.armR.shoulder.rotation.x,-0.9,0.15);
+    p.legL.knee.rotation.x = THREE.MathUtils.lerp(p.legL.knee.rotation.x,1.1,0.15);
+    p.legR.knee.rotation.x = THREE.MathUtils.lerp(p.legR.knee.rotation.x,1.1,0.15);
+  } else if(state === "climb"){
+    const ct = p.animT*7;
+    p.armL.shoulder.rotation.x = -1.9 + Math.sin(ct)*0.5;
+    p.armR.shoulder.rotation.x = -1.9 + Math.sin(ct+Math.PI)*0.5;
+    p.legL.hip.rotation.x = 0.3 + Math.sin(ct+Math.PI)*0.4;
+    p.legR.hip.rotation.x = 0.3 + Math.sin(ct)*0.4;
+  } else if(state === "land"){
+    const s = 1 - (p.landTimer/0.18);
+    p.group.scale.set(1+0.12*(1-s)*0.4, 1-0.18*(1-s), 1+0.12*(1-s)*0.4);
+    p.legL.knee.rotation.x = 0.5*(1-s); p.legR.knee.rotation.x = 0.5*(1-s);
+  } else {
+    // idle - gentle breathing
+    const b = Math.sin(p.animT*1.6)*0.03;
+    p.armL.shoulder.rotation.x = THREE.MathUtils.lerp(p.armL.shoulder.rotation.x,0,0.2);
+    p.armR.shoulder.rotation.x = THREE.MathUtils.lerp(p.armR.shoulder.rotation.x,0,0.2);
+    p.legL.hip.rotation.x = THREE.MathUtils.lerp(p.legL.hip.rotation.x,0,0.2);
+    p.legR.hip.rotation.x = THREE.MathUtils.lerp(p.legR.hip.rotation.x,0,0.2);
+    p.legL.knee.rotation.x = THREE.MathUtils.lerp(p.legL.knee.rotation.x,0,0.2);
+    p.legR.knee.rotation.x = THREE.MathUtils.lerp(p.legR.knee.rotation.x,0,0.2);
+    p.torso.position.y = 1.05 + b;
+  }
+  if(state !== "land"){ p.group.scale.set(1,1,1); }
+
+  p.shieldRing.visible = p.shielded;
+  if(p.shielded) p.shieldRing.rotation.z += dt*2;
+
+  p.group.position.copy(p.position);
+  p.group.rotation.y = THREE.MathUtils.lerp(p.group.rotation.y, p.facingYaw, 0.25);
+}
+
+/* ---------------------------------------------------------------------
+   7. WORLD GENERATION (procedural vertical tower)
+   --------------------------------------------------------------------- */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rng = mulberry32(20260831);
+
+let world = {
+  platforms: [],   // {mesh, box, isWall, moving, type, baseY, baseX, baseZ, phase, breakable, broken, standTimer, wind}
+  pickups: [],
+  checkpointMarkers: [], // {height, mesh, worldY, x, z, claimed}
+  decor: [],
+  highestGeneratedTier: -1,
+  tierPositions: {}, // tierIndex -> {x,z,y}
+};
+
+function clearWorld(){
+  world.platforms.forEach(p=>scene.remove(p.mesh));
+  world.pickups.forEach(p=>scene.remove(p.mesh));
+  world.checkpointMarkers.forEach(p=>scene.remove(p.mesh));
+  world.decor.forEach(p=>scene.remove(p));
+  world.platforms = []; world.pickups = []; world.checkpointMarkers = []; world.decor = [];
+  world.highestGeneratedTier = -1; world.tierPositions = {};
+}
+
+function envMaterialFor(height){
+  // color palette shifts with height band
+  if(height < 100) return 0x3a6b4a;
+  if(height < 300) return 0x2f5a72;
+  if(height < 600) return 0x53406b;
+  if(height < 900) return 0x6b3a3a;
+  return 0x00f6ff;
+}
+
+function addPlatform(x,y,z, w,d, opts){
+  opts = opts || {};
+  const isWall = !!opts.isWall;
+  const h = isWall ? (opts.h||4) : (opts.h||0.5);
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const baseColor = opts.color!==undefined ? opts.color : envMaterialFor(y);
+  const mat = new THREE.MeshStandardMaterial({
+    color: baseColor, roughness:0.55, metalness:0.15,
+    emissive: opts.danger ? 0xff2200 : (isWall?0x001a22:0x000000),
+    emissiveIntensity: opts.danger?0.6:(isWall?0.25:0)
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x,y,z);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(mesh);
+  const entry = {
+    mesh, isWall, type: opts.type||"static",
+    baseX:x, baseY:y, baseZ:z, w, d, h,
+    phase: rng()*Math.PI*2, moving: !!opts.moving, moveAxis: opts.moveAxis||"x", moveRange: opts.moveRange||2, moveSpeed: opts.moveSpeed||1,
+    breakable: !!opts.breakable, broken:false, standTimer:0,
+    danger: !!opts.danger, wind: opts.wind||0,
+    permanent: !!opts.permanent,
+    lastDelta: new THREE.Vector3(),
+  };
+  world.platforms.push(entry);
+  return entry;
+}
+
+// A single giant safety-net "field" far below the tower. If the player misses a jump and
+// falls, they simply land safely on this open ground instead of dying - no fall damage,
+// no respawn penalty. It is excluded from world-pruning so it always exists.
+function addSafetyGround(){
+  const size = 200; // ~100m radius open field
+  const geo = new THREE.BoxGeometry(size, 2, size);
+  const mat = new THREE.MeshStandardMaterial({ color:0x274d33, roughness:0.95, metalness:0 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(0, 0, 0);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  world.platforms.push({
+    mesh, isWall:false, type:"ground",
+    baseX:0, baseY:0, baseZ:0, w:size, d:size, h:2,
+    phase:0, moving:false, moveAxis:"x", moveRange:0, moveSpeed:0,
+    breakable:false, broken:false, standTimer:0,
+    danger:false, wind:0, permanent:true,
+    lastDelta:new THREE.Vector3(),
+  });
+}
+
+function addPickup(x,y,z){
+  const geo = new THREE.SphereGeometry(0.28,10,10);
+  const mat = new THREE.MeshStandardMaterial({color:0x00f6ff, emissive:0x00f6ff, emissiveIntensity:1.4, roughness:0.2});
+  const mesh = new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y,z);
+  scene.add(mesh);
+  world.pickups.push({mesh, x,y,z, collected:false, phase:rng()*Math.PI*2});
+}
+
+function addCheckpointMarker(height, x, y, z){
+  const geo = new THREE.CylinderGeometry(1.4,1.4,0.15,20,1,true);
+  const mat = new THREE.MeshStandardMaterial({color:0xffe600, emissive:0xffe600, emissiveIntensity:1.0, transparent:true, opacity:0.55, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y+0.3,z);
+  scene.add(mesh);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,10,6), new THREE.MeshBasicMaterial({color:0xffe600, transparent:true, opacity:0.25}));
+  beam.position.set(x,y+5,z);
+  scene.add(beam);
+  world.checkpointMarkers.push({height, mesh, beam, x,y,z, claimed: SAVE.highestCheckpoint >= height});
+}
+
+// Generate tower tiers up to targetHeight (meters). Deterministic via seeded rng.
+function generateUpTo(targetTier){
+  for(let tier = world.highestGeneratedTier+1; tier <= targetTier; tier++){
+    const y = 2 + tier*CFG.tierStep;
+    const heightM = y; // 1 unit = 1 meter, ground at y~2 => height ~0
+    const diff = difficultyFor(Math.max(0,heightM-2));
+    const bandIdx = DIFF_BANDS.indexOf(diff);
+
+    // zigzag path
+    const angle = tier*0.9 + rng()*0.6;
+    const radius = 3 + (bandIdx*0.6) + rng()*2;
+    let x = Math.cos(angle)*radius*0.6 + (rng()-0.5)*2;
+    let z = Math.sin(angle)*radius*0.6 + (rng()-0.5)*2;
+    if(tier===0){ x = 0; z = 0; } // guarantee solid ground directly under the spawn point
+    world.tierPositions[tier] = {x,y,z};
+
+    const platW = tier===0 ? 5.5 : Math.max(1.6, 3.2 - bandIdx*0.35);
+    const platD = platW;
+
+    const roll = rng();
+    let opts = {};
+    if(tier>4 && roll < 0.12+bandIdx*0.03){
+      opts = { moving:true, moveAxis: rng()<0.5?"x":"z", moveRange: 2+rng()*2, moveSpeed: 0.6+rng()*0.6+bandIdx*0.15 };
+    } else if(tier>6 && roll < 0.24+bandIdx*0.04){
+      opts = { breakable:true };
+    } else if(tier>10 && roll < 0.34+bandIdx*0.05){
+      opts = { danger:true };
+    }
+    if(opts.danger){
+      // danger zone: thin glowing hazard the player must avoid, placed slightly offset instead of the safe platform
+      addPlatform(x+ (rng()<0.5?-1.6:1.6), y-0.3, z, platW*0.8, platD*0.8, {danger:true, color:0x330000});
+      // still place a safe platform nearby so the level is completable
+      addPlatform(x, y, z, platW, platD, {});
+    } else {
+      addPlatform(x, y, z, platW, platD, opts);
+    }
+
+    // occasional wall for climbing beside the path (made frequent + large + close enough
+    // to reliably reach, so the GRAB / wall-climb ability is easy to discover and use)
+    if(tier>1 && rng() < 0.42 + bandIdx*0.03){
+      const wx = x + (rng()<0.5?-1.9:1.9);
+      const wz = z + (rng()<0.5?-1.0:1.0);
+      addPlatform(wx, y+1.6, wz, 1.1, 3.0, {isWall:true, h:CFG.tierStep*2.6, color:0x0d3b4a});
+    }
+    // rotating bar hazard on harder bands
+    if(bandIdx>=2 && rng() < 0.18){
+      addPlatform(x, y+1.0, z, platW*1.8, 0.35, {moving:true, moveAxis:"rotate", moveSpeed:0.8+rng()*0.8, color:0xff7a1a, danger:true});
+    }
+    // wind zone marker on very hard/extreme
+    if(bandIdx>=3 && rng()<0.15){
+      world.platforms[world.platforms.length-1].wind = (rng()<0.5?-1:1) * (2+rng()*2);
+    }
+
+    // power pickups
+    if(tier%3===0){ addPickup(x + (rng()-0.5)*1.5, y+1.2, z + (rng()-0.5)*1.5); }
+
+    // decorative environment elements by height band
+    if(tier%5===0){ addDecor(x, y, z, heightM); }
+  }
+  world.highestGeneratedTier = Math.max(world.highestGeneratedTier, targetTier);
+
+  // place checkpoint markers once we've generated far enough
+  ALL_CHECKPOINTS.forEach(cp=>{
+    if(world.checkpointMarkers.find(m=>m.height===cp)) return;
+    const tierForCp = Math.round((cp)/CFG.tierStep);
+    if(tierForCp <= world.highestGeneratedTier){
+      const pos = world.tierPositions[tierForCp] || {x:0,z:0,y:2+cp};
+      addCheckpointMarker(cp, pos.x, pos.y+0.3, pos.z);
+    }
+  });
+}
+
+function addDecor(x,y,z,heightM){
+  let geo, mat, scale=1;
+  if(heightM < 100){
+    geo = new THREE.ConeGeometry(0.9,2.4,6); mat = new THREE.MeshStandardMaterial({color:0x1d3d24, roughness:0.9});
+  } else if(heightM < 300){
+    geo = new THREE.SphereGeometry(1.1,8,8); mat = new THREE.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.5, roughness:1});
+  } else if(heightM < 600){
+    geo = new THREE.BoxGeometry(1.4,3.2,1.4); mat = new THREE.MeshStandardMaterial({color:0x3a2a55, roughness:0.6, emissive:0x1a0a2a, emissiveIntensity:0.3});
+  } else if(heightM < 900){
+    geo = new THREE.ConeGeometry(1.6,3.6,5); mat = new THREE.MeshStandardMaterial({color:0x4a2020, roughness:0.9});
+  } else {
+    geo = new THREE.OctahedronGeometry(1.0); mat = new THREE.MeshStandardMaterial({color:0x00f6ff, emissive:0x00f6ff, emissiveIntensity:1.2});
+  }
+  const mesh = new THREE.Mesh(geo,mat);
+  mesh.position.set(x + (rng()-0.5)*6, y + (rng()-0.3)*3, z + (rng()-0.5)*6 - 3);
+  scene.add(mesh);
+  world.decor.push(mesh);
+}
+
+function pruneWorld(){
+  const minY = player.position.y - 30;
+  for(let i=world.platforms.length-1;i>=0;i--){
+    const p = world.platforms[i];
+    if(!p.permanent && p.baseY < minY){ scene.remove(p.mesh); world.platforms.splice(i,1); }
+  }
+  for(let i=world.pickups.length-1;i>=0;i--){
+    const p = world.pickups[i];
+    if(p.y < minY || p.collected){ scene.remove(p.mesh); world.pickups.splice(i,1); }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   8. INPUT (keyboard + mobile touch)
+   --------------------------------------------------------------------- */
+const input = { fwd:0, strafe:0, jumpPressed:false, jumpHeld:false, sprint:false, grab:false, dashPressed:false,
+  abilityPressed: {}, joyVec:{x:0,y:0}, usingTouch:false };
+
+const keyState = {};
+window.addEventListener("keydown", (e)=>{
+  if(document.activeElement && ["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+  const k = e.key.toLowerCase();
+  if(keyState[k]) return; // ignore repeat
+  keyState[k] = true;
+  if(k===" "){ input.jumpPressed = true; e.preventDefault(); }
+  if(k==="shift") input.sprint = true;
+  if(k==="e") input.grab = true;
+  if(k==="q") input.dashPressed = true;
+  if(k==="1") input.abilityPressed["superjump"]=true;
+  if(k==="2") input.abilityPressed["wallrun"]=true;
+  if(k==="3") input.abilityPressed["shield"]=true;
+  if(k==="4") input.abilityPressed["supersprint"]=true;
+  if(k==="5") input.abilityPressed["gravityboost"]=true;
+  if(k==="escape") togglePause();
+});
+window.addEventListener("keyup", (e)=>{
+  const k = e.key.toLowerCase();
+  keyState[k]=false;
+  if(k==="shift") input.sprint = false;
+  if(k==="e") input.grab = false;
+});
+function readKeyboardAxes(){
+  let f=0,s=0;
+  if(keyState["w"]||keyState["arrowup"]) f+=1;
+  if(keyState["s"]||keyState["arrowdown"]) f-=1;
+  if(keyState["d"]||keyState["arrowright"]) s+=1;
+  if(keyState["a"]||keyState["arrowleft"]) s-=1;
+  return {f,s};
+}
+
+// mobile detection
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 900);
+
+function setupMobileControls(){
+  if(!isMobile) return;
+  $("mobileControls").classList.add("on");
+  input.usingTouch = true;
+
+  const zone = $("joystickZone"), knob = $("joystickKnob");
+  let dragging=false, originX=0, originY=0;
+  const maxR = 45;
+  function start(e){ dragging=true; const t=e.touches[0]; const r=zone.getBoundingClientRect(); originX=r.left+r.width/2; originY=r.top+r.height/2; }
+  function move(e){
+    if(!dragging) return;
+    const t = e.touches[0];
+    let dx = t.clientX-originX, dy=t.clientY-originY;
+    const dist = Math.hypot(dx,dy);
+    if(dist>maxR){ dx = dx/dist*maxR; dy = dy/dist*maxR; }
+    knob.style.left = (35+dx)+"px"; knob.style.top = (35+dy)+"px";
+    input.joyVec.x = dx/maxR; input.joyVec.y = -dy/maxR;
+    e.preventDefault();
+  }
+  function end(e){ dragging=false; knob.style.left="35px"; knob.style.top="35px"; input.joyVec.x=0; input.joyVec.y=0; }
+  zone.addEventListener("touchstart", start, {passive:false});
+  zone.addEventListener("touchmove", move, {passive:false});
+  zone.addEventListener("touchend", end);
+  zone.addEventListener("touchcancel", end);
+
+  function bindBtn(id, onDown, onUp){
+    const el = $(id);
+    el.addEventListener("touchstart", (e)=>{ e.preventDefault(); onDown(); }, {passive:false});
+    if(onUp) el.addEventListener("touchend", (e)=>{ e.preventDefault(); onUp(); });
+  }
+  bindBtn("btnJump", ()=>{ input.jumpPressed = true; vibrate(15); });
+  bindBtn("btnSprint", ()=>{ input.sprint = true; }, ()=>{ input.sprint=false; });
+  bindBtn("btnGrab", ()=>{ input.grab = true; }, ()=>{ input.grab=false; });
+  bindBtn("btnDash", ()=>{ input.dashPressed = true; vibrate(20); });
+
+  // camera drag on right side of screen (outside joystick/buttons)
+  canvas.addEventListener("touchstart", camTouchStart, {passive:false});
+  canvas.addEventListener("touchmove", camTouchMove, {passive:false});
+  canvas.addEventListener("touchend", camTouchEnd);
+}
+let camTouchId = null, lastTouchX=0, lastTouchY=0;
+function camTouchStart(e){
+  for(const t of e.changedTouches){
+    if(t.clientX > window.innerWidth*0.4){ camTouchId = t.identifier; lastTouchX=t.clientX; lastTouchY=t.clientY; }
+  }
+}
+function camTouchMove(e){
+  for(const t of e.changedTouches){
+    if(t.identifier===camTouchId){
+      cameraRig.yaw -= (t.clientX-lastTouchX)*0.006;
+      cameraRig.pitch = THREE.MathUtils.clamp(cameraRig.pitch + (t.clientY-lastTouchY)*0.004, -0.7, 0.9);
+      lastTouchX=t.clientX; lastTouchY=t.clientY;
+    }
+  }
+}
+function camTouchEnd(e){ for(const t of e.changedTouches){ if(t.identifier===camTouchId) camTouchId=null; } }
+
+// desktop mouse-drag camera orbit
+let mouseDown=false, lastMX=0,lastMY=0;
+canvas.addEventListener("mousedown",(e)=>{ mouseDown=true; lastMX=e.clientX; lastMY=e.clientY; });
+window.addEventListener("mouseup",()=>mouseDown=false);
+window.addEventListener("mousemove",(e)=>{
+  if(!mouseDown) return;
+  cameraRig.yaw -= (e.clientX-lastMX)*0.005;
+  cameraRig.pitch = THREE.MathUtils.clamp(cameraRig.pitch + (e.clientY-lastMY)*0.004, -0.7, 0.9);
+  lastMX=e.clientX; lastMY=e.clientY;
+});
+canvas.addEventListener("wheel",(e)=>{ cameraRig.dist = THREE.MathUtils.clamp(cameraRig.dist + e.deltaY*0.01, 4, 14); });
+
+/* ---------------------------------------------------------------------
+   9. CAMERA RIG
+   --------------------------------------------------------------------- */
+const cameraRig = { yaw:0, pitch:0.35, dist:7.5, shake:0 };
+function updateCamera(dt){
+  const targetPos = player.position.clone().add(new THREE.Vector3(0,1.3,0));
+  const offset = new THREE.Vector3(
+    Math.sin(cameraRig.yaw)*Math.cos(cameraRig.pitch),
+    Math.sin(cameraRig.pitch)+0.15,
+    Math.cos(cameraRig.yaw)*Math.cos(cameraRig.pitch)
+  ).multiplyScalar(cameraRig.dist);
+  const desired = targetPos.clone().add(offset);
+  camera.position.lerp(desired, 1-Math.pow(0.001,dt));
+  if(cameraRig.shake>0){
+    camera.position.x += (Math.random()-0.5)*cameraRig.shake;
+    camera.position.y += (Math.random()-0.5)*cameraRig.shake;
+    cameraRig.shake = Math.max(0, cameraRig.shake-dt*4);
+  }
+  camera.lookAt(targetPos);
+}
+
+/* ---------------------------------------------------------------------
+   10. GAME STATE
+   --------------------------------------------------------------------- */
+let gameState = {
+  running:false, paused:false,
+  height:0, bestHeight: SAVE.highestHeight,
+  power: 100,
+  round:0,
+  abilityUnlocked: {}, // id->bool
+  abilityCooldownUntil: {},
+  lastBonusHeight:0,
+  claimedCheckpoints: new Set(),
+  dead:false,
+  won:false,
+};
+
+function unlockAbilitiesUpTo(height){
+  ABILITIES.forEach(a=>{
+    if(height >= a.unlockAt && !SAVE.unlockedAbilities.includes(a.id)){
+      SAVE.unlockedAbilities.push(a.id);
+      toast("NEW ABILITY UNLOCKED: "+a.name, "ability");
+      Audio_.ability();
+      persistSave();
+    }
+  });
+}
+function checkAchievements(height){
+  ACHIEVEMENTS.forEach(a=>{
+    if(height >= a.height && !SAVE.achievements.includes(a.id)){
+      SAVE.achievements.push(a.id);
+      toast(a.icon+" "+a.name+" UNLOCKED", "checkpoint");
+      Audio_.checkpoint();
+      persistSave();
+    }
+  });
+}
+
+/* ---------------------------------------------------------------------
+   11. ABILITY ACTIVATION
+   --------------------------------------------------------------------- */
+function abilityReady(id){
+  const now = performance.now()/1000;
+  return (gameState.abilityCooldownUntil[id]||0) <= now;
+}
+function tryActivateAbility(id){
+  const meta = ABILITIES.find(a=>a.id===id);
+  if(!meta || meta.passive) return;
+  if(!SAVE.unlockedAbilities.includes(id)){ toast("LOCKED — reach "+meta.unlockAt+"m", "warn"); return; }
+  if(!abilityReady(id)) return;
+  if(gameState.power < meta.cost) { toast("NOT ENOUGH POWER", "warn"); return; }
+  gameState.power -= meta.cost;
+  gameState.abilityCooldownUntil[id] = performance.now()/1000 + meta.cooldown;
+  Audio_.ability(); vibrate(25);
+  toast(meta.icon+" "+meta.name+" ACTIVATED", "ability");
+
+  if(id==="superjump"){ player.velocity.y = CFG.superJumpForce; player.onGround=false; }
+  else if(id==="wallrun"){ player.wallrunActive = true; player.wallrunTimer = meta.duration; }
+  else if(id==="airdash"){
+    const dir = new THREE.Vector3(Math.sin(cameraRig.yaw),0,Math.cos(cameraRig.yaw));
+    player.velocity.x += dir.x*14; player.velocity.z += dir.z*14; player.velocity.y = Math.max(player.velocity.y,1);
+    player.dashInvuln = 0.4;
+  }
+  else if(id==="supersprint"){ player.superSprintTimer = meta.duration; }
+  else if(id==="gravityboost"){ player.gravityBoostTimer = meta.duration; }
+  else if(id==="shield"){ player.shielded = true; }
+}
+
+/* ---------------------------------------------------------------------
+   12. PHYSICS & COLLISION
+   --------------------------------------------------------------------- */
+function boxOverlapXZ(px,pz,pr, bx,bz,bw,bd){
+  return (px+pr > bx-bw/2) && (px-pr < bx+bw/2) && (pz+pr > bz-bd/2) && (pz-pr < bz+bd/2);
+}
+
+function updatePlatformMotion(plat, t, dt){
+  if(plat.moving){
+    if(plat.moveAxis === "rotate"){
+      plat.mesh.rotation.y = t*plat.moveSpeed;
+    } else {
+      const offset = Math.sin(t*plat.moveSpeed + plat.phase) * plat.moveRange;
+      const prevX = plat.mesh.position.x, prevZ = plat.mesh.position.z;
+      if(plat.moveAxis === "x") plat.mesh.position.x = plat.baseX + offset;
+      else plat.mesh.position.z = plat.baseZ + offset;
+      plat.lastDelta.set(plat.mesh.position.x-prevX, 0, plat.mesh.position.z-prevZ);
+    }
+  }
+  if(plat.breakable && !plat.broken && plat.standTimer>0){
+    plat.standTimer -= dt;
+    plat.mesh.position.y = plat.baseY + Math.sin(performance.now()*0.05)*0.02;
+    if(plat.standTimer<=0){
+      plat.broken = true;
+      plat.mesh.material.opacity = 0.15; plat.mesh.material.transparent = true;
+      plat.mesh.scale.y = 0.2;
+    }
+  }
+}
+
+function physicsStep(dt){
+  const p = player;
+  if(p.dashInvuln>0) p.dashInvuln -= dt;
+
+  const t = clock.elapsedTime;
+  world.platforms.forEach(pl=>updatePlatformMotion(pl,t,dt));
+
+  // ---- input axes ----
+  let f=0,s=0;
+  if(input.usingTouch){ f = input.joyVec.y; s = input.joyVec.x; }
+  else { const kb = readKeyboardAxes(); f=kb.f; s=kb.s; }
+
+  const camForward = new THREE.Vector3(-Math.sin(cameraRig.yaw),0,-Math.cos(cameraRig.yaw));
+  const camRight = new THREE.Vector3(Math.cos(cameraRig.yaw),0,-Math.sin(cameraRig.yaw));
+  const wishDir = new THREE.Vector3()
+    .addScaledVector(camForward, f)
+    .addScaledVector(camRight, s);
+  if(wishDir.lengthSq()>0.001) wishDir.normalize();
+
+  if(wishDir.lengthSq()>0.001) p.facingYaw = Math.atan2(wishDir.x, wishDir.z);
+
+  let sprinting = (input.sprint || p.superSprintTimer>0);
+  if(sprinting && p.onGround && wishDir.lengthSq()>0.001){
+    gameState.power = Math.max(0, gameState.power - 8*dt);
+  }
+  const targetSpeed = CFG.moveSpeed * (sprinting?CFG.sprintMult:1);
+  const accel = p.onGround ? CFG.accel : CFG.accel*CFG.airControl;
+
+  const desiredVX = wishDir.x*targetSpeed, desiredVZ = wishDir.z*targetSpeed;
+  p.velocity.x = THREE.MathUtils.lerp(p.velocity.x, desiredVX, Math.min(1, accel*dt));
+  p.velocity.z = THREE.MathUtils.lerp(p.velocity.z, desiredVZ, Math.min(1, accel*dt));
+  if(p.onGround && wishDir.lengthSq()<0.001){
+    p.velocity.x = THREE.MathUtils.lerp(p.velocity.x,0,Math.min(1,CFG.friction*dt));
+    p.velocity.z = THREE.MathUtils.lerp(p.velocity.z,0,Math.min(1,CFG.friction*dt));
+  }
+
+  // ---- wall detection ----
+  let nearWall = null;
+  for(const pl of world.platforms){
+    if(!pl.isWall) continue;
+    const dx = p.position.x-pl.mesh.position.x, dz = p.position.z-pl.mesh.position.z;
+    if(Math.hypot(dx,dz) < 2.2 && Math.abs(p.position.y-pl.mesh.position.y) < pl.h/2+1.5){
+      nearWall = pl; break;
+    }
+  }
+  p.wallTouch = nearWall;
+
+  const climbUnlocked = SAVE.unlockedAbilities.includes("wallclimb");
+  p.climbing = false;
+  if(nearWall && climbUnlocked && (input.grab) && gameState.power>0){
+    p.climbing = true;
+    p.velocity.y = CFG.climbSpeed;
+    p.velocity.x *= 0.2; p.velocity.z *= 0.2;
+    gameState.power = Math.max(0, gameState.power - 10*dt);
+    if(Math.random()<0.05) Audio_.climb();
+  } else if(p.wallrunActive && nearWall){
+    p.wallrunTimer -= dt;
+    p.velocity.y = Math.max(p.velocity.y, -1);
+    if(p.wallrunTimer<=0) p.wallrunActive=false;
+  } else {
+    // gravity
+    let g = CFG.gravity;
+    if(p.gravityBoostTimer>0){ g *= 0.35; p.gravityBoostTimer -= dt; }
+    p.velocity.y += g*dt;
+  }
+
+  // wind zones push player
+  for(const pl of world.platforms){
+    if(pl.wind && Math.abs(p.position.y-pl.mesh.position.y)<3 && Math.hypot(p.position.x-pl.mesh.position.x,p.position.z-pl.mesh.position.z)<4){
+      p.velocity.x += pl.wind*dt;
+    }
+  }
+
+  // ---- jump ----
+  if(input.jumpPressed){
+    if(p.onGround){
+      p.velocity.y = CFG.jumpForce; p.onGround=false; p.jumpsUsed=1; Audio_.jump(); vibrate(10);
+    } else if(SAVE.unlockedAbilities.includes("doublejump") && p.jumpsUsed < p.maxJumps+1 && gameState.power>=15){
+      p.velocity.y = CFG.jumpForce*0.9; p.jumpsUsed++; gameState.power -= 15; Audio_.jump(); vibrate(10);
+    }
+    input.jumpPressed = false;
+  }
+  if(input.dashPressed){ tryActivateAbility("airdash"); input.dashPressed=false; }
+  Object.keys(input.abilityPressed).forEach(id=>{
+    if(input.abilityPressed[id]){ tryActivateAbility(id); input.abilityPressed[id]=false; }
+  });
+
+  // ---- integrate position ----
+  const prevFeetY = p.position.y; // feet height BEFORE this frame's vertical move (used for swept ground check)
+  p.position.x += p.velocity.x*dt;
+  p.position.z += p.velocity.z*dt;
+  p.position.y += p.velocity.y*dt;
+
+  // ---- collisions with platforms (land on top) ----
+  // Uses a swept check (prevFeetY -> new feetY) instead of a tight position band so that
+  // fast falls / big frame deltas can never tunnel straight through a platform.
+  let grounded = false;
+  const magnet = SAVE.unlockedAbilities.includes("magnetgrab");
+  const feetY = p.position.y;
+  for(const pl of world.platforms){
+    if(pl.isWall || pl.broken) continue;
+    const top = pl.mesh.position.y + pl.h/2;
+    const overlap = boxOverlapXZ(p.position.x,p.position.z, magnet?0.75:0.45, pl.mesh.position.x, pl.mesh.position.z, pl.w, pl.d);
+    if(overlap && p.velocity.y<=0.5 && prevFeetY >= top-0.4 && feetY <= top+0.6){
+      p.position.y = top;
+      p.velocity.y = 0;
+      grounded = true;
+      p.currentPlatform = pl;
+      // carry moving platform delta
+      if(pl.moving && pl.moveAxis!=="rotate"){ p.position.x += pl.lastDelta.x; p.position.z += pl.lastDelta.z; }
+      if(pl.breakable && !pl.broken){
+        if(pl.standTimer<=0) pl.standTimer = 0.8;
+      }
+      if(pl.danger && !p.shielded && p.dashInvuln<=0){
+        triggerDeath();
+      }
+      break;
+    }
+  }
+  if(grounded && !p.onGround){
+    p.landTimer = 0.18; Audio_.land(); cameraRig.shake = 0.06; p.jumpsUsed=0;
+    if(p.currentPlatform && p.currentPlatform.type==="ground" && prevFeetY - feetY > 4){
+      toast("SAFE LANDING — NO DAMAGE", "power");
+    }
+  }
+  p.onGround = grounded;
+  if(grounded) p.jumpsUsed = 0;
+
+  // rotating bar side hazard (approx via danger flag already handles top collision; also check side sweep)
+  for(const pl of world.platforms){
+    if(pl.moving && pl.moveAxis==="rotate" && pl.danger){
+      const dx = p.position.x-pl.mesh.position.x, dz = p.position.z-pl.mesh.position.z;
+      const dist = Math.hypot(dx,dz);
+      if(dist < Math.max(pl.w,pl.d)/2 && Math.abs(p.position.y-pl.mesh.position.y)<0.9 && p.dashInvuln<=0 && !p.shielded){
+        const push = new THREE.Vector3(dx,0,dz).normalize().multiplyScalar(6);
+        p.velocity.x += push.x; p.velocity.z += push.z; p.velocity.y = 4;
+        gameState.power = Math.max(0, gameState.power-10);
+        cameraRig.shake = 0.15;
+      }
+    }
+  }
+
+  // side collision with solid non-wall platforms (simple push-out) skipped for playability/perf
+
+  // ---- power regen ----
+  if(!p.climbing && !(sprinting&&p.onGround&&wishDir.lengthSq()>0.001)){
+    gameState.power = Math.min(CFG.powerMax, gameState.power + CFG.powerRegen*dt);
+  }
+
+  // ---- height & progress ----
+  const height = Math.max(0, p.position.y - 2);
+  gameState.height = height;
+  if(height > gameState.bestHeight){ gameState.bestHeight = height; SAVE.highestHeight = height; }
+
+  // distance bonus
+  if(height - gameState.lastBonusHeight >= 100){
+    gameState.lastBonusHeight = Math.floor(height/100)*100;
+    gameState.power = Math.min(CFG.powerMax, gameState.power+10);
+    toast("DISTANCE BONUS +10 POWER","power");
+  }
+
+  // pickups
+  for(const pk of world.pickups){
+    if(pk.collected) continue;
+    pk.mesh.rotation.y += dt*2;
+    pk.mesh.position.y = pk.y + Math.sin(t*2+pk.phase)*0.15;
+    if(Math.hypot(p.position.x-pk.x, p.position.z-pk.z) < 1 && Math.abs(p.position.y-pk.y)<1.2){
+      pk.collected = true; pk.mesh.visible=false;
+      gameState.power = Math.min(CFG.powerMax, gameState.power+25);
+      toast("+25 POWER","power"); Audio_.power(); vibrate(8);
+    }
+  }
+
+  // checkpoints
+  ALL_CHECKPOINTS.forEach(cp=>{
+    if(height >= cp && !gameState.claimedCheckpoints.has(cp)){
+      gameState.claimedCheckpoints.add(cp);
+      SAVE.highestCheckpoint = Math.max(SAVE.highestCheckpoint, cp);
+      persistSave();
+      Audio_.checkpoint(); vibrate([30,30,30]);
+      toast("CHECKPOINT REACHED! "+cp+"m", "checkpoint");
+      const marker = world.checkpointMarkers.find(m=>m.height===cp);
+      if(marker) marker.claimed = true;
+    }
+  });
+
+  unlockAbilitiesUpTo(height);
+  checkAchievements(height);
+  handleRounds(height);
+
+  // generate more world ahead
+  const targetTier = Math.ceil((height+40)/CFG.tierStep);
+  if(targetTier > world.highestGeneratedTier) generateUpTo(targetTier);
+  pruneWorld();
+
+  // Falling off the tower is now safe: the open ground field below always catches the
+  // player (handled by normal platform collision above). Only an extreme out-of-world
+  // case (well below the safety ground) counts as a fallback death trigger.
+  if(p.position.y < -25){
+    if(p.shielded){ p.shielded=false; toast("SHIELD ABSORBED THE FALL","ability"); p.position.y = 3; p.velocity.set(0,0,0); }
+    else triggerDeath();
+  }
+
+  if(height >= 1000 && !gameState.won){
+    triggerVictory();
+  }
+}
+
+function handleRounds(height){
+  let idx = 0;
+  if(height >= ROUNDS[0].end) idx = 1;
+  if(height >= ROUNDS[1].end) idx = 2;
+  if(idx !== gameState.round){
+    const completed = ROUNDS[gameState.round];
+    if(completed && height >= completed.end && completed.end < 1000){
+      showRoundBanner(completed.name+" COMPLETE!");
+      Audio_.round();
+    }
+    gameState.round = idx;
+  }
+}
+function showRoundBanner(text){
+  const b = $("roundBanner");
+  $("roundBannerText").textContent = text;
+  b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+}
+
+function triggerDeath(){
+  if(gameState.dead || gameState.won) return;
+  gameState.dead = true;
+  gameState.running = false;
+  Audio_.fall(); vibrate([50,30,50]);
+  showScreen("respawnOverlay");
+}
+function respawnPlayer(){
+  const cp = SAVE.highestCheckpoint;
+  const marker = world.checkpointMarkers.find(m=>m.height===cp);
+  if(marker){ player.position.set(marker.x, marker.y+1, marker.z); }
+  else { player.position.set(0, 2+cp, 0); }
+  player.velocity.set(0,0,0);
+  gameState.power = Math.max(40, gameState.power);
+  gameState.dead = false;
+  gameState.running = true;
+  showScreen(null);
+  $("hud").classList.remove("hidden");
+}
+
+let confettiCtx=null, confettiParticles=[];
+function triggerVictory(){
+  gameState.won = true; gameState.running = false;
+  Audio_.victory();
+  SAVE.highestHeight = 1000; persistSave();
+  showScreen("victoryScreen");
+  $("hud").classList.add("hidden");
+  startConfetti();
+}
+function startConfetti(){
+  const c = $("confettiCanvas");
+  c.classList.remove("hidden");
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  confettiCtx = c.getContext("2d");
+  confettiParticles = [];
+  const colors = ["#00f6ff","#ff2fd0","#ffe600","#2bff88","#ff7a1a"];
+  for(let i=0;i<140;i++){
+    confettiParticles.push({
+      x: Math.random()*c.width, y: -20-Math.random()*c.height,
+      vy: 2+Math.random()*3, vx:(Math.random()-0.5)*2,
+      size: 4+Math.random()*6, color: colors[i%colors.length], rot: Math.random()*Math.PI, vr:(Math.random()-0.5)*0.2
+    });
+  }
+  requestAnimationFrame(confettiLoop);
+}
+function confettiLoop(){
+  if(!confettiCtx || $("victoryScreen").classList.contains("hidden")){
+    $("confettiCanvas").classList.add("hidden"); confettiCtx=null; return;
+  }
+  const c = $("confettiCanvas");
+  confettiCtx.clearRect(0,0,c.width,c.height);
+  confettiParticles.forEach(p=>{
+    p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+    if(p.y > c.height+20){ p.y = -20; p.x = Math.random()*c.width; }
+    confettiCtx.save();
+    confettiCtx.translate(p.x,p.y); confettiCtx.rotate(p.rot);
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.5);
+    confettiCtx.restore();
+  });
+  requestAnimationFrame(confettiLoop);
+}
+
+/* ---------------------------------------------------------------------
+   13. HUD UPDATE
+   --------------------------------------------------------------------- */
+let fpsAcc=0, fpsFrames=0, fpsLast=performance.now();
+function updateHUD(dt){
+  $("hudHeight").textContent = "HEIGHT: "+Math.floor(gameState.height)+"m";
+  $("hudBest").textContent = "BEST: "+Math.floor(gameState.bestHeight)+"m";
+  $("hudRound").textContent = ROUNDS[gameState.round].name;
+  $("powerBar").style.width = Math.max(0,gameState.power)+"%";
+  const diff = difficultyFor(gameState.height);
+  const dt2 = $("diffTag");
+  dt2.textContent = diff.name; dt2.style.borderColor = diff.color; dt2.style.color = diff.color;
+
+  fpsFrames++; fpsAcc += dt;
+  if(fpsAcc>0.5){
+    const fps = Math.round(fpsFrames/fpsAcc);
+    $("fpsCounter").textContent = "FPS: "+fps;
+    fpsFrames=0; fpsAcc=0;
+  }
+}
+
+function renderAbilityBar(){
+  const bar = $("abilityBar");
+  bar.innerHTML = "";
+  ABILITIES.forEach(a=>{
+    const unlocked = SAVE.unlockedAbilities.includes(a.id);
+    const slot = document.createElement("div");
+    slot.className = "ability-slot" + (unlocked?"":" locked");
+    slot.innerHTML = '<div class="key">'+(a.passive?"AUTO":a.key)+'</div><div class="icon">'+a.icon+'</div>';
+    slot.title = a.name + (unlocked ? "" : " (unlock at "+a.unlockAt+"m)");
+    if(!a.passive){
+      slot.addEventListener("click", ()=>tryActivateAbility(a.id));
+      slot.addEventListener("touchstart",(e)=>{ e.preventDefault(); tryActivateAbility(a.id); });
+    }
+    bar.appendChild(slot);
+    a._domSlot = slot;
+  });
+}
+function updateAbilityCooldownUI(){
+  const now = performance.now()/1000;
+  ABILITIES.forEach(a=>{
+    if(!a._domSlot || a.passive) return;
+    const remain = (gameState.abilityCooldownUntil[a.id]||0) - now;
+    let cdEl = a._domSlot.querySelector(".cd");
+    if(remain>0){
+      if(!cdEl){ cdEl = document.createElement("div"); cdEl.className="cd"; a._domSlot.appendChild(cdEl); }
+      cdEl.textContent = Math.ceil(remain);
+    } else if(cdEl){ cdEl.remove(); }
+  });
+}
+
+/* ---------------------------------------------------------------------
+   14. MAIN LOOP
+   --------------------------------------------------------------------- */
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if(document.hidden) return;
+
+  if(gameState.running && !gameState.paused){
+    physicsStep(dt);
+    animateCharacter(dt);
+  }
+  updateCamera(dt);
+  if(gameState.running || gameState.won){ updateHUD(dt); updateAbilityCooldownUI(); }
+  renderer.render(scene, camera);
+}
+
+/* ---------------------------------------------------------------------
+   15. SCREEN / MENU WIRING
+   --------------------------------------------------------------------- */
+function togglePause(){
+  if(!gameState.running) return;
+  gameState.paused = !gameState.paused;
+  showScreen(gameState.paused ? "pauseScreen" : null);
+}
+
+function beginGame(fresh){
+  clearWorld();
+  addSafetyGround();
+  gameState = {
+    running:true, paused:false,
+    height:0, bestHeight: SAVE.highestHeight, power:100,
+    round:0, abilityCooldownUntil:{}, lastBonusHeight: fresh?0:Math.floor(SAVE.highestCheckpoint/100)*100,
+    claimedCheckpoints: new Set(fresh?[]:ALL_CHECKPOINTS.filter(c=>c<=SAVE.highestCheckpoint)),
+    dead:false, won:false,
+  };
+  if(fresh){ SAVE.highestCheckpoint = 0; SAVE.highestHeight=0; persistSave(); }
+  const startCp = fresh ? 0 : SAVE.highestCheckpoint;
+  generateUpTo(Math.ceil((startCp+50)/CFG.tierStep));
+  if(startCp>0){
+    const marker = world.checkpointMarkers.find(m=>m.height===startCp);
+    player.position.set(marker?marker.x:0, (marker?marker.y:2+startCp)+1, marker?marker.z:0);
+  } else {
+    player.position.set(0,2,0);
+  }
+  player.velocity.set(0,0,0);
+  cameraRig.yaw = 0; cameraRig.pitch = 0.35; cameraRig.dist = 7.5;
+
+  renderAbilityBar();
+  showScreen(null);
+  $("hud").classList.remove("hidden");
+  $("fpsCounter").classList.toggle("hidden", SAVE.settings.fps!=="on");
+}
+
+function wireUI(){
+  // loading screen start
+  $("startGameBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("mainMenu"); });
+  $("soundToggleBtnLoad").addEventListener("click", ()=>{
+    SAVE.settings.sound = SAVE.settings.sound==="on" ? "off":"on"; persistSave();
+    $("soundToggleBtnLoad").textContent = "🔊 SOUND: "+SAVE.settings.sound.toUpperCase();
+    Audio_.click();
+  });
+
+  $("menuStartBtn").addEventListener("click", ()=>{ Audio_.click(); beginGame(false); });
+  $("menuAchBtn").addEventListener("click", ()=>{ Audio_.click(); renderAchievements(); showScreen("achScreen"); });
+  $("menuAbilBtn").addEventListener("click", ()=>{ Audio_.click(); renderAbilitiesInfo(); showScreen("abilScreen"); });
+  $("menuSettingsBtn").addEventListener("click", ()=>{ Audio_.click(); syncSettingsUI(); showScreen("settingsScreen"); });
+  $("menuAboutBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("aboutScreen"); });
+
+  $("settingsBackBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen(gameState.running?null:"mainMenu"); if(gameState.running) togglePause(); });
+  $("achBackBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("mainMenu"); });
+  $("abilBackBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("mainMenu"); });
+  $("aboutBackBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("mainMenu"); });
+
+  $("resetProgressBtn").addEventListener("click", ()=>{
+    if(confirm("Reset all progress? This cannot be undone.")){
+      resetSave(); toast("PROGRESS RESET","warn"); Audio_.click();
+    }
+  });
+
+  $("pauseBtn").addEventListener("click", togglePause);
+  $("resumeBtn").addEventListener("click", togglePause);
+  $("pauseSettingsBtn").addEventListener("click", ()=>{ syncSettingsUI(); showScreen("settingsScreen"); });
+  $("pauseMenuBtn").addEventListener("click", ()=>{
+    gameState.running=false; gameState.paused=false;
+    $("hud").classList.add("hidden");
+    showScreen("mainMenu");
+  });
+
+  $("respawnBtn").addEventListener("click", ()=>{ Audio_.click(); respawnPlayer(); });
+
+  $("playAgainBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen(null); $("victoryScreen").classList.add("hidden"); beginGame(true); });
+  $("victoryMenuBtn").addEventListener("click", ()=>{ Audio_.click(); showScreen("mainMenu"); });
+  $("victoryResetBtn").addEventListener("click", ()=>{
+    if(confirm("Reset all progress?")){ resetSave(); Audio_.click(); showScreen("mainMenu"); }
+  });
+
+  // settings segmented controls
+  bindSeg("gfxSeg", (v)=>{ SAVE.settings.graphics=v; persistSave(); applyGraphicsQuality(); });
+  bindSeg("soundSeg", (v)=>{ SAVE.settings.sound=v; persistSave(); });
+  bindSeg("vibSeg", (v)=>{ SAVE.settings.vibration=v; persistSave(); });
+  bindSeg("fpsSeg", (v)=>{ SAVE.settings.fps=v; persistSave(); $("fpsCounter").classList.toggle("hidden", v!=="on"); });
+}
+function bindSeg(id, cb){
+  const seg = $(id);
+  seg.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      Audio_.click();
+      seg.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      cb(btn.dataset.v);
+    });
+  });
+}
+function syncSettingsUI(){
+  ["gfxSeg","soundSeg","vibSeg","fpsSeg"].forEach(id=>{
+    const key = id==="gfxSeg"?"graphics":id==="soundSeg"?"sound":id==="vibSeg"?"vibration":"fps";
+    $(id).querySelectorAll("button").forEach(b=>b.classList.toggle("active", b.dataset.v===SAVE.settings[key]));
+  });
+}
+function renderAchievements(){
+  const list = $("achList"); list.innerHTML = "";
+  ACHIEVEMENTS.forEach(a=>{
+    const unlocked = SAVE.achievements.includes(a.id);
+    const row = document.createElement("div");
+    row.className = "ach-item"+(unlocked?"":" locked");
+    row.innerHTML = '<div class="ach-icon">'+a.icon+'</div><div><div style="font-weight:700;">'+a.name+'</div><div style="opacity:.7;">'+a.desc+'</div></div>';
+    list.appendChild(row);
+  });
+}
+function renderAbilitiesInfo(){
+  const list = $("abilList"); list.innerHTML = "";
+  ABILITIES.forEach(a=>{
+    const unlocked = SAVE.unlockedAbilities.includes(a.id);
+    const row = document.createElement("div");
+    row.className = "ach-item"+(unlocked?"":" locked");
+    row.innerHTML = '<div class="ach-icon">'+a.icon+'</div><div><div style="font-weight:700;">'+a.name+' <span style="opacity:.6; font-weight:400;">('+(a.passive?"AUTO":"key "+a.key)+')</span></div>'+
+      '<div style="opacity:.7;">Cost '+a.cost+' • Cooldown '+a.cooldown+'s • Unlock at '+a.unlockAt+'m</div></div>';
+    list.appendChild(row);
+  });
+}
+
+/* ---------------------------------------------------------------------
+   16. LOADING SEQUENCE
+   --------------------------------------------------------------------- */
+function runLoadingSequence(){
+  initThree();
+  buildCharacter();
+  setupMobileControls();
+  wireUI();
+
+  $("soundToggleBtnLoad").textContent = "🔊 SOUND: "+SAVE.settings.sound.toUpperCase();
+
+  let pct = 0;
+  const hints = ["INITIALIZING ENGINE...","BUILDING TOWER GEOMETRY...","RIGGING CHARACTER...","LOADING TEXTURES...","CALIBRATING PHYSICS...","READY."];
+  const fill = $("loadFill"), hint = $("loadHint");
+  const iv = setInterval(()=>{
+    pct += 8+Math.random()*14;
+    if(pct>=100){
+      pct = 100; clearInterval(iv);
+      hint.textContent = hints[hints.length-1];
+      $("loadingActions").style.display = "flex";
+      $("loadingActions").style.flexDirection = "column";
+    } else {
+      hint.textContent = hints[Math.min(hints.length-2, Math.floor(pct/20))];
+    }
+    fill.style.width = pct+"%";
+  }, 180);
+
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) clock.getDelta(); });
+
+  animate();
+}
+
+runLoadingSequence();
+
+})();
+</script>
+</body>
+</html>
